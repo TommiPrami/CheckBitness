@@ -22,22 +22,22 @@ begin
   raise Exception.Create('Invalid executable');
 end;
 
-function Isx64PEImage(const AStrm: TStream): Boolean; overload;
+function Isx64PEImage(const AStream: TStream): Boolean; overload;
 var
   LDOSHeader: TImageDosHeader;
   LImageNtHeaders: TImageNtHeaders;
 begin
-  if AStrm.Read(LDOSHeader, SizeOf(TImageDosHeader)) <> SizeOf(TImageDosHeader) then
+  if AStream.Read(LDOSHeader, SizeOf(TImageDosHeader)) <> SizeOf(TImageDosHeader) then
     RaiseInvalidExecutrable;
 
   if (LDOSHeader.e_magic <> IMAGE_DOS_SIGNATURE) or (LDOSHeader._lfanew = 0) then
     RaiseInvalidExecutrable;
 
-  if AStrm.Size < LDOSHeader._lfanew then
+  if AStream.Size < LDOSHeader._lfanew then
     RaiseInvalidExecutrable;
 
-  AStrm.Position := LDOSHeader._lfanew;
-  if AStrm.Read(LImageNtHeaders, SizeOf(TImageNtHeaders)) <> SizeOf(TImageNtHeaders) then
+  AStream.Position := LDOSHeader._lfanew;
+  if AStream.Read(LImageNtHeaders, SizeOf(TImageNtHeaders)) <> SizeOf(TImageNtHeaders) then
     RaiseInvalidExecutrable;
 
   if LImageNtHeaders.Signature <> IMAGE_NT_SIGNATURE then
