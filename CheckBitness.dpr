@@ -23,8 +23,6 @@ begin
 end;
 
 function Isx64PEImage(const AStrm: TStream): Boolean; overload;
-const
-  IMAGE_FILE_MACHINE_I386 = $014c; // Intel x86
 var
   LDOSHeader: TImageDosHeader;
   LImageNtHeaders: TImageNtHeaders;
