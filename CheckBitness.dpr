@@ -48,13 +48,13 @@ end;
 
 function Isx64PEImage(const APEImageFileName: string): Boolean; overload;
 var
-  LPEImageSream: TBufferedFileStream;
+  LPEImageStream: TBufferedFileStream;
 begin
-  LPEImageSream := TBufferedFileStream.Create(APEImageFileName, fmOpenRead);
+  LPEImageStream := TBufferedFileStream.Create(APEImageFileName, fmOpenRead);
   try
-    Result := Isx64PEImage(LPEImageSream);
+    Result := Isx64PEImage(LPEImageStream);
   finally
-    LPEImageSream.Free;
+    LPEImageStream.Free;
   end;
 end;
 
