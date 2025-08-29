@@ -12,51 +12,8 @@
 {$R *.res}
 
 uses
-  System.Classes,
   System.SysUtils,
-  Winapi.Windows;
-
-
-procedure RaiseInvalidExecutrable;
-begin
-  raise Exception.Create('Invalid executable');
-end;
-
-function Isx64PEImage(const AStream: TStream): Boolean; overload;
-var
-  LDOSHeader: TImageDosHeader;
-  LImageNtHeaders: TImageNtHeaders;
-begin
-  if AStream.Read(LDOSHeader, SizeOf(TImageDosHeader)) <> SizeOf(TImageDosHeader) then
-    RaiseInvalidExecutrable;
-
-  if (LDOSHeader.e_magic <> IMAGE_DOS_SIGNATURE) or (LDOSHeader._lfanew = 0) then
-    RaiseInvalidExecutrable;
-
-  if AStream.Size < LDOSHeader._lfanew then
-    RaiseInvalidExecutrable;
-
-  AStream.Position := LDOSHeader._lfanew;
-  if AStream.Read(LImageNtHeaders, SizeOf(TImageNtHeaders)) <> SizeOf(TImageNtHeaders) then
-    RaiseInvalidExecutrable;
-
-  if LImageNtHeaders.Signature <> IMAGE_NT_SIGNATURE then
-    RaiseInvalidExecutrable;
-
-  Result := LImageNtHeaders.FileHeader.Machine <> IMAGE_FILE_MACHINE_I386;
-end;
-
-function Isx64PEImage(const APEImageFileName: string): Boolean; overload;
-var
-  LPEImageStream: TBufferedFileStream;
-begin
-  LPEImageStream := TBufferedFileStream.Create(APEImageFileName, fmOpenRead);
-  try
-    Result := Isx64PEImage(LPEImageStream);
-  finally
-    LPEImageStream.Free;
-  end;
-end;
+  CBUnit.CheckBitness in 'CBUnit.CheckBitness.pas';
 
 procedure PrintUsage;
 var
@@ -64,12 +21,17 @@ var
 begin
   LExeName := ExtractFileName(ParamStr(0));
 
-  WriteLn(LExeName + ' (version 0.1)');
+  WriteLn(LExeName + ' (version 0.2)');
   WriteLn('');
   WriteLn('  Usage:');
   WriteLn('    ' + LExeName + ' [path and filename]');
 end;
 
+const
+  EXIT_CODE_FILE_NOT_FOUND = 1;
+  EXIT_CODE_FILE_NOT_GIVEN = 2;
+  EXIT_CODE_UNKNOWN_OR_UNSUPPORTED_CPU_ARCHITECTURE = 3;
+  EXIT_CODE_EXCEPTION = 4;
 var
   LPeFileToCheck: string;
 begin
@@ -80,14 +42,24 @@ begin
     if not FileExists(LPeFileToCheck)  then
     begin
       PrintUsage;
-      ExitCode := 1;
+
+      if LPeFileToCheck.IsEmpty then
+        ExitCode := EXIT_CODE_FILE_NOT_GIVEN
+      else
+        ExitCode := EXIT_CODE_FILE_NOT_FOUND;
+
       Exit;
     end;
 
-    if Isx64PEImage(LPeFileToCheck) then
-      WriteLn('x64')
-    else
-      WriteLn('x86');
+    case GetPEImageArchitecture(LPeFileToCheck) of
+      piaSupported:
+        begin
+          WriteLn('Unknown or unsupported CPU architecture');
+          ExitCode := EXIT_CODE_UNKNOWN_OR_UNSUPPORTED_CPU_ARCHITECTURE;
+        end;
+      piaX86: WriteLn('x86');
+      piaX64: WriteLn('x64');
+    end;
 
     {$IFDEF DEBUG}
     Readln;
@@ -98,7 +70,7 @@ begin
       Writeln('');
       Writeln('Exception while checking file: ');
       Writeln('  ' + E.ClassName + ': ' + E.Message);
-      ExitCode := 2;
+      ExitCode := EXIT_CODE_EXCEPTION;
     end;
   end;
 end.
